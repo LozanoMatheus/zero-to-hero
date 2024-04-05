@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+	<title>Docker container zero-to-hero</title>
+	<link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+
+	<link rel="stylesheet" href="dist/reset.css">
+	<link rel="stylesheet" href="dist/reveal.css">
+	<link rel="stylesheet" href="dist/theme/black.css">
+
+	<link rel="stylesheet" href="plugin/highlight/monokai.css">
+</head>
+
+<body>
+	<div class="reveal">
+		<div class="slides">
+			<section data-markdown="presentations/01-intro.md" data-separator="^-----" data-separator-vertical="^---">
+			</section>
+
+			<section data-markdown="presentations/02-container-intro.md" data-separator="^-----"
+				data-separator-vertical="^---"></section>
+
+			<section data-markdown="presentations/04-how-container-works.md" data-separator="^-----"
+				data-separator-vertical="^---"></section>
+
+			<section data-markdown="presentations/05-what-is-docker.md" data-separator="^-----"
+				data-separator-vertical="^---"></section>
+
+			<section data-markdown="presentations/06-what-docker-tries-to-solve.md" data-separator="^-----"
+				data-separator-vertical="^---"></section>
+
+			<section data-markdown="presentations/07-docker-install-config.md" data-separator="^-----"
+				data-separator-vertical="^---"></section>
+
+			<section>
+				<section>
+					<h2 data-id="code-title" style="color:green;">Writting the Dockerfile</h2>
+					<a href="/docker-example/node-js-getting-started">Source code example</a>
+					<br>
+					<ul>
+						<li class="fragment">
+							<p>Write it from scratch</p>
+						</li>
+						<li class="fragment">
+							<p>Understand the most used Dockerfile instructions</p>
+						</li>
+						<li class="fragment">
+							<p>Having an optimized Docker layers</p>
+						</li>
+						<li class="fragment">
+							<p>Building in parallel with Docker multi-stage feature</p>
+						</li>
+					</ul>
+				</section>
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Creating the node-build stage</h2>
+					<pre data-id="code-animation"><code class="Dockerfile" data-trim data-line-numbers="1">
+							FROM node:18.16
+						</code></pre>
+				</section>
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Creating the node-build stage</h2>
+					<pre data-id="code-animation"><code class="Dockerfile" data-trim data-line-numbers="3">
+							FROM node:18.16
+
+							WORKDIR /opt/my-app/
+						</code></pre>
+				</section>
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Creating the node-build stage</h2>
+					<pre data-id="code-animation"><code class="Dockerfile" data-trim data-line-numbers="1,5">
+							FROM node:18.16 AS node-build ## defining the stage name as node-build
+
+							WORKDIR /opt/my-app/
+
+							COPY package.json /opt/my-app/
+						</code></pre>
+				</section>
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Creating the node-build stage</h2>
+					<pre data-id="code-animation"><code class="Dockerfile" data-trim data-line-numbers="7">
+							FROM node:18.16 AS node-build
+
+							WORKDIR /opt/my-app/
+
+							COPY package.json /opt/my-app/
+
+							RUN npm install
+						</code></pre>
+				</section>
+
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Creating the install-heroku stage</h2>
+					<pre data-id="code-animation"><code class="Dockerfile" data-trim data-line-numbers="9">
+							FROM node:18.16 AS node-build
+
+							WORKDIR /opt/my-app/
+
+							COPY package.json /opt/my-app/
+
+							RUN npm install
+
+							FROM alpine AS install-heroku ## defining the stage name as install-heroku
+						</code></pre>
+				</section>
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Creating the install-heroku stage</h2>
+					<pre data-id="code-animation"><code class="Dockerfile" data-trim data-line-numbers="11-12">
+							FROM node:18.16 AS node-build
+
+							WORKDIR /opt/my-app/
+
+							COPY package.json /opt/my-app/
+
+							RUN npm install
+
+							FROM alpine AS install-heroku ## defining the stage name as install-heroku
+
+							RUN apk update \
+							&& apk add curl
+						</code></pre>
+				</section>
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Creating the install-heroku stage</h2>
+					<pre data-id="code-animation"><code class="Dockerfile" data-trim data-line-numbers="14-16">
+							FROM node:18.16 AS node-build
+
+							WORKDIR /opt/my-app/
+
+							COPY package.json /opt/my-app/
+
+							RUN npm install
+
+							FROM alpine AS install-heroku ## defining the stage name as install-heroku
+
+							RUN apk update \
+							&& apk add curl
+
+							ENV HEROKU_VERSION="stable"
+							RUN curl -LO "https://cli-assets.heroku.com/channels/${HEROKU_VERSION}/heroku-linux-x64.tar.gz" \
+							&& tar xf heroku-linux-x64.tar.gz
+						</code></pre>
+				</section>
+
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Creating the application image</h2>
+					<pre data-id="code-animation"><code class="Dockerfile" data-trim data-line-numbers="18">
+							FROM node:18.16 AS node-build
+
+							WORKDIR /opt/my-app/
+
+							COPY package.json /opt/my-app/
+
+							RUN npm install
+
+							FROM alpine AS install-heroku ## defining the stage name as install-heroku
+
+							RUN apk update \
+							&& apk add curl
+
+							ENV HEROKU_VERSION="stable"
+							RUN curl -LO "https://cli-assets.heroku.com/channels/${HEROKU_VERSION}/heroku-linux-x64.tar.gz" \
+							&& tar xf heroku-linux-x64.tar.gz
+
+							FROM node:18.16 ## in this case we don't need to define the stage name
+						</code></pre>
+				</section>
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Creating the application image</h2>
+					<pre data-id="code-animation"><code class="Dockerfile" data-trim data-line-numbers="20">
+							FROM node:18.16 AS node-build
+
+							WORKDIR /opt/my-app/
+
+							COPY package.json /opt/my-app/
+
+							RUN npm install
+
+							FROM alpine AS install-heroku ## defining the stage name as install-heroku
+
+							RUN apk update \
+							&& apk add curl
+
+							ENV HEROKU_VERSION="stable"
+							RUN curl -LO "https://cli-assets.heroku.com/channels/${HEROKU_VERSION}/heroku-linux-x64.tar.gz" \
+							&& tar xf heroku-linux-x64.tar.gz
+
+							FROM node:18.16 ## in this case we don't need to define the stage name
+
+							WORKDIR /opt/my-app/
+						</code></pre>
+				</section>
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Creating the application image</h2>
+					<pre data-id="code-animation"><code class="Dockerfile" data-trim data-line-numbers="22">
+							FROM node:18.16 AS node-build
+
+							WORKDIR /opt/my-app/
+
+							COPY package.json /opt/my-app/
+
+							RUN npm install
+
+							FROM alpine AS install-heroku ## defining the stage name as install-heroku
+
+							RUN apk update \
+							&& apk add curl
+
+							ENV HEROKU_VERSION="stable"
+							RUN curl -LO "https://cli-assets.heroku.com/channels/${HEROKU_VERSION}/heroku-linux-x64.tar.gz" \
+							&& tar xf heroku-linux-x64.tar.gz
+
+							FROM node:18.16 ## in this case we don't need to define the stage name
+
+							WORKDIR /opt/my-app/
+
+							COPY --from=node-build /opt/my-app/node_modules /opt/my-app/node_modules
+						</code></pre>
+				</section>
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Creating the application image</h2>
+					<pre data-id="code-animation"><code class="Dockerfile" data-trim data-line-numbers="24">
+							FROM node:18.16 AS node-build
+
+							WORKDIR /opt/my-app/
+
+							COPY package.json /opt/my-app/
+
+							RUN npm install
+
+							FROM alpine AS install-heroku ## defining the stage name as install-heroku
+
+							RUN apk update \
+							&& apk add curl
+
+							ENV HEROKU_VERSION="stable"
+							RUN curl -LO "https://cli-assets.heroku.com/channels/${HEROKU_VERSION}/heroku-linux-x64.tar.gz" \
+							&& tar xf heroku-linux-x64.tar.gz
+
+							FROM node:18.16 ## in this case we don't need to define the stage name
+
+							WORKDIR /opt/my-app/
+
+							COPY --from=node-build /opt/my-app/node_modules /opt/my-app/node_modules
+
+							COPY --from=install-heroku /heroku/bin/heroku /usr/local/bin
+						</code></pre>
+				</section>
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Creating the application image</h2>
+					<pre data-id="code-animation"><code class="Dockerfile" data-trim data-line-numbers="26">
+							FROM node:18.16 AS node-build
+
+							WORKDIR /opt/my-app/
+
+							COPY package.json /opt/my-app/
+
+							RUN npm install
+
+							FROM alpine AS install-heroku ## defining the stage name as install-heroku
+
+							RUN apk update \
+							&& apk add curl
+
+							ENV HEROKU_VERSION="stable"
+							RUN curl -LO "https://cli-assets.heroku.com/channels/${HEROKU_VERSION}/heroku-linux-x64.tar.gz" \
+							&& tar xf heroku-linux-x64.tar.gz
+
+							FROM node:18.16 ## in this case we don't need to define the stage name
+
+							WORKDIR /opt/my-app/
+
+							COPY --from=node-build /opt/my-app/node_modules /opt/my-app/node_modules
+
+							COPY --from=install-heroku /heroku/bin/heroku /usr/local/bin
+
+							COPY . /opt/my-app/
+						</code></pre>
+				</section>
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Creating the application image</h2>
+					<pre data-id="code-animation"><code class="Dockerfile" data-trim data-line-numbers="28-30">
+							FROM node:18.16 AS node-build
+
+							WORKDIR /opt/my-app/
+
+							COPY package.json /opt/my-app/
+
+							RUN npm install
+
+							FROM alpine AS install-heroku ## defining the stage name as install-heroku
+
+							RUN apk update \
+							&& apk add curl
+
+							ENV HEROKU_VERSION="stable"
+							RUN curl -LO "https://cli-assets.heroku.com/channels/${HEROKU_VERSION}/heroku-linux-x64.tar.gz" \
+							&& tar xf heroku-linux-x64.tar.gz
+
+							FROM node:18.16 ## in this case we don't need to define the stage name
+
+							WORKDIR /opt/my-app/
+
+							COPY --from=node-build /opt/my-app/node_modules /opt/my-app/node_modules
+
+							COPY --from=install-heroku /heroku/bin/heroku /usr/local/bin
+
+							COPY . /opt/my-app/
+
+							ENTRYPOINT [ "/usr/local/bin/npm" ]
+							## or enforce a single parameter when running the container
+							## [ "/usr/local/bin/npm", "start" ]
+						</code></pre>
+				</section>
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Creating the application image</h2>
+					<pre data-id="code-animation"><code class="Dockerfile" data-trim data-line-numbers="28-32">
+							FROM node:18.16 AS node-build
+
+							WORKDIR /opt/my-app/
+
+							COPY package.json /opt/my-app/
+
+							RUN npm install
+
+							FROM alpine AS install-heroku ## defining the stage name as install-heroku
+
+							RUN apk update \
+							&& apk add curl
+
+							ENV HEROKU_VERSION="stable"
+							RUN curl -LO "https://cli-assets.heroku.com/channels/${HEROKU_VERSION}/heroku-linux-x64.tar.gz" \
+							&& tar xf heroku-linux-x64.tar.gz
+
+							FROM node:18.16 ## in this case we don't need to define the stage name
+
+							WORKDIR /opt/my-app/
+
+							COPY --from=node-build /opt/my-app/node_modules /opt/my-app/node_modules
+
+							COPY --from=install-heroku /heroku/bin/heroku /usr/local/bin
+
+							COPY . /opt/my-app/
+
+							ENTRYPOINT [ "/usr/local/bin/npm" ]
+							## The user can run the docker and pass any argument, the default parameter will be start
+							## e.g. to run `npm test` instead of `npm start`:
+							## docker run -p 5001:5001 -it zero-to-hero-docker-example test
+							CMD [ "start" ]
+						</code></pre>
+				</section>
+			</section>
+
+			<section>
+				<section>
+					<h2 data-id="code-title" style="color:green;">Building and running it</h2>
+					<a href="/docker-example/node-js-getting-started">Source code example</a>
+					<br>
+					<ul>
+						<li class="fragment">
+							<p>Build the Docker based on the previous example</p>
+						</li>
+						<li class="fragment">
+							<p>Running the docker</p>
+						</li>
+						<li class="fragment">
+							<p>Exposing a local port and accessing it from your local machine</p>
+						</li>
+					</ul>
+				</section>
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Going to the directory of the example</h2>
+					<pre data-id="code-animation"><code class="Bash" data-trim data-line-numbers="1">
+							cd zero-to-hero/docker-container/docker-example/node-js-getting-started
+						</code></pre>
+				</section>
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Building it</h2>
+					<pre data-id="code-animation"><code class="Bash" data-trim data-line-numbers="3">
+							cd zero-to-hero/docker-container/docker-example/node-js-getting-started
+
+							docker build -t zero-to-hero-docker-example .
+						</code></pre>
+				</section>
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Running it</h2>
+					<pre data-id="code-animation"><code class="Bash" data-trim data-line-numbers="5-7">
+							cd zero-to-hero/docker-container/docker-example/node-js-getting-started
+
+							docker build -t zero-to-hero-docker-example .
+
+							docker run --rm -p 5001:5001 -it zero-to-hero-docker-example
+							## or run the `node test`
+							## docker run --rm -p 5001:5001 -it zero-to-hero-docker-example test
+						</code></pre>
+				</section>
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Explaning Build</h2>
+					<pre data-id="code-animation"><code class="Bash" data-trim data-line-numbers="4-8">
+							cd zero-to-hero/docker-container/docker-example/node-js-getting-started
+
+							docker build -t zero-to-hero-docker-example .
+							## docker build [OPTIONS] PATH | URL | -
+							## `-t`: Same as `--tag`, name and optionally a tag in the 'name:tag' format
+							## `zero-to-hero-docker-example`: A image name without specifying a tag.
+							## The tag will be latest if not specified
+							## `.`: The path to the Dockerfile, `.` is the current folder
+						</code></pre>
+				</section>
+				<section data-auto-animate>
+					<h2 data-id="code-title" style="color:green;">Explaning Run</h2>
+					<pre data-id="code-animation"><code class="Bash" data-trim data-line-numbers="6-11">
+							cd zero-to-hero/docker-container/docker-example/node-js-getting-started
+
+							docker build -t zero-to-hero-docker-example .
+
+							docker run --rm -it -p 5001:5001 zero-to-hero-docker-example
+							## or docker run --rm -p 5001:5001 -it zero-to-hero-docker-example test
+							## docker run [OPTIONS] IMAGE [COMMAND] [ARG...]
+							## `--rm`: Automatically remove the container when it exits
+							## `-i`: Same as `--interactive`, keep STDIN open even if not attached
+							## `-t`: Same as `--tty`, allocate a pseudo-TTY
+							## `test`: A command that was specified in the package.json file
+						</code></pre>
+				</section>
+			</section>
+
+			<section>
+				<section>
+					<h2 data-id="code-title" style="color:green;">... and more: Bad practices / anti-patterns</h2>
+					<br>
+					<ul>
+						<li class="fragment">
+							<p>Bad practices, like</p>
+							<ul>
+								<li>
+									<p>
+										<a href="https://jpetazzo.github.io/2015/09/03/do-not-use-docker-in-docker-for-ci/">
+											Using Docker-in-Docker for your CI or testing environment? Think twice.</a>
+									</p>
+								</li>
+								<li>
+									<p>
+										<a
+											href="https://devops.stackexchange.com/questions/676/why-is-docker-in-docker-considered-bad/681#681">
+											DinD: Continuous Integration Concerns</a>
+									</p>
+								</li>
+								<li>
+									<p>
+										<a
+											href="https://www.trendmicro.com/en_in/research/19/l/why-running-a-privileged-container-in-docker-is-a-bad-idea.html">
+											Why A Privileged Container in Docker Is a Bad Idea</a>
+									</p>
+								</li>
+								<li>
+									<p>
+										<a href="https://semaphoreci.com/blog/2018/03/14/docker-image-size.html">
+											Docker Image Size - Does It Matter?</a> <em>unless if it's a toolbox, not an application</em>
+									</p>
+								</li>
+						</li>
+					</ul>
+				</section>
+				<section>
+					<h2 data-id="code-title" style="color:green;">... and best practices</h2>
+					<br>
+					<ul>
+						<li class="fragment">
+							<p>Best practices, like</p>
+							<ul>
+								<li>
+									<p>
+										Small docker image.
+									</p>
+								</li>
+								<li>
+									<p>
+										Organize your Dockerfile in a good way and guarantee the caching
+									</p>
+								</li>
+								<li>
+									<p>
+										<a href="https://github.com/slimtoolkit/slim">Slim image</a>
+									</p>
+								</li>
+								<li>
+									<p>
+										Use Multi-platform to support different CPU architectures, like ARM
+									</p>
+								</li>
+								<li>
+									<p>
+										Use multi-stage for parallel building
+									</p>
+								</li>
+								<li>
+									<p>
+										Graceful shutdown with dumb-init or tini
+									</p>
+								</li>
+								<li>
+									<p>
+										Rotless container with podman
+									</p>
+								</li>
+								<li>
+									<p>
+										Beyond the app, use it for toollbox and keep your machine clean
+									</p>
+								</li>
+						</li>
+					</ul>
+				</section>
+			</section>
+
+
+			<!-- <section data-markdown="presentations/08-other-topics.md" data-separator="^-----" data-separator-vertical="^---">
+			</section> -->
+		</div>
+	</div>
+
+	<script src="dist/reveal.js"></script>
+	<script src="plugin/zoom/zoom.js"></script>
+	<script src="plugin/notes/notes.js"></script>
+	<script src="plugin/markdown/markdown.js"></script>
+	<script src="plugin/highlight/highlight.js"></script>
+	<script type="text/javascript" src="dist/reveal.js"></script>
+	<script src="plugin/verticator/verticator.js"></script>
+	<script src="plugin/copycode/copycode.js"></script>
+	<script>
+		Reveal.initialize({
+			hash: true,
+
+			width: 1280,
+			height: 960,
+			center: false,
+			markdown: {
+				smartypants: true
+			},
+
+			copycode: {
+				plaintextonly: false
+			},
+
+			verticator: {
+				themetag: 'h1',
+				skipuncounted: false,
+				clickable: true,
+				position: 'auto',
+				offset: '3vmin',
+				autogenerate: true,
+				tooltip: "auto",
+				scale: 1,
+			},
+			plugins: [RevealMarkdown, RevealHighlight, Verticator, RevealZoom, CopyCode]
+		});
+	</script>
+</body>
+
+</html>
